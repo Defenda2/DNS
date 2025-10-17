@@ -1,0 +1,19 @@
+$TTL    604800
+@       IN      SOA     ns1.{{ domain_name }}. admin.{{ domain_name }}. (
+                              2         ; Serial
+                              604800    ; Refresh
+                              86400     ; Retry
+                              2419200   ; Expire
+                              604800 )  ; Negative Cache TTL
+;
+@       IN      NS      ns1.{{ domain_name }}.
+ns1     IN      A       10.1.0.11
+www     IN      A       10.1.0.5     ; Web Server (nginx)
+ftp     IN      A       10.1.0.6     ; FTP Server
+mail    IN      A       10.1.0.2     ; Email Server
+ssh     IN      A       10.1.0.3     ; SSH Server
+sql     IN      A       10.1.0.4     ; MySQL Database
+ceo     IN      A       10.1.0.7     ; CEO Workstation
+hr      IN      A       10.1.0.8     ; HR Workstation
+smb     IN      A       10.1.0.9     ; Windows SMB Server
+ldap    IN      A       10.1.0.10    ; Domain Controller

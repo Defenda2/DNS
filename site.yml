@@ -1,0 +1,96 @@
+---
+- name: Deploy DNS Server with Bind9 for Lab Infrastructure
+  hosts: dns_servers
+  become: yes
+
+  vars:
+    domain_name: "example.com"
+    bind_dir: "/etc/bind"
+
+  tasks:
+    - name: Install BIND9 and DNS utilities
+      apt:
+        name:
+          - bind9
+          - dnsutils
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Bind9 service
+      service:
+        name: bind9
+        state: started
+        enabled: yes
+
+    - name: Harden named.conf.options
+      blockinfile:
+        path: "{{ bind_dir }}/named.conf.options"
+        block: |
+          options {
+            directory "/var/cache/bind";
+            recursion no;
+            allow-query { 10.1.0.0/24; };
+            listen-on { 10.1.0.11; };
+            listen-on-v6 { none; };
+            forwarders {};
+            dnssec-validation no;
+          };
+      notify: Restart bind9
+
+    - name: Deploy named.conf.local
+      template:
+        src: named.conf.local.j2
+        dest: "{{ bind_dir }}/named.conf.local"
+      notify: Restart bind9
+
+    - name: Deploy zone file for {{ domain_name }}
+      template:
+        src: db.example.com.j2
+        dest: "{{ bind_dir }}/db.{{ domain_name }}"
+      notify: Restart bind9
+
+    - name: Set permissions on named.conf.local
+      file:
+        path: "{{ bind_dir }}/named.conf.local"
+        owner: root
+        group: bind
+        mode: '0644'
+
+    - name: Set permissions on zone file
+      file:
+        path: "{{ bind_dir }}/db.{{ domain_name }}"
+        owner: root
+        group: bind
+        mode: '0644'
+
+    - name: Validate named.conf syntax
+      command: named-checkconf
+      register: checkconf_result
+      failed_when: checkconf_result.rc != 0
+
+    - name: Validate zone file syntax
+      command: named-checkzone {{ domain_name }} {{ bind_dir }}/db.{{ domain_name }}
+      register: checkzone_result
+      failed_when: checkzone_result.rc != 0
+
+    - name: Test DNS resolution for {{ domain_name }}
+      command: dig @10.1.0.11 {{ domain_name }}
+      register: dig_output
+
+    - name: Show dig output
+      debug:
+        var: dig_output.stdout_lines
+
+    - name: Test DNS resolution for www.{{ domain_name }}
+      command: dig @10.1.0.11 www.{{ domain_name }}
+      register: dig_www_output
+
+    - name: Show dig www output
+      debug:
+        var: dig_www_output.stdout_lines
+
+  handlers:
+    - name: Restart bind9
+      service:
+        name: bind9
+        state: restarted
