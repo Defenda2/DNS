@@ -1,12 +1,9 @@
----
 - name: Deploy DNS Server with Bind9 for Lab Infrastructure
   hosts: dns_servers
   become: yes
-
   vars:
-    domain_name: "example.com"
+    domain_name: "ingen.corp"
     bind_dir: "/etc/bind"
-
   tasks:
     - name: Install BIND9 and DNS utilities
       apt:
@@ -33,7 +30,6 @@
             listen-on { 10.1.0.11; };
             listen-on-v6 { none; };
             forwarders {};
-            dnssec-validation no;
           };
       notify: Restart bind9
 
@@ -45,7 +41,7 @@
 
     - name: Deploy zone file for {{ domain_name }}
       template:
-        src: db.example.com.j2
+        src: db.ingen.corp.j2
         dest: "{{ bind_dir }}/db.{{ domain_name }}"
       notify: Restart bind9
 
@@ -74,7 +70,7 @@
       failed_when: checkzone_result.rc != 0
 
     - name: Test DNS resolution for {{ domain_name }}
-      command: dig @10.1.0.11 {{ domain_name }}
+      command: dig @127.0.0.1 {{ domain_name }}
       register: dig_output
 
     - name: Show dig output
@@ -82,7 +78,7 @@
         var: dig_output.stdout_lines
 
     - name: Test DNS resolution for www.{{ domain_name }}
-      command: dig @10.1.0.11 www.{{ domain_name }}
+      command: dig @127.0.0.1 www.{{ domain_name }}
       register: dig_www_output
 
     - name: Show dig www output
