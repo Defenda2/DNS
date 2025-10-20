@@ -1,0 +1,32 @@
+---
+- name: Disable sleep on Linux systems
+  hosts: linux
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Mask sleep-related systemd targets
+      systemd:
+        name: "{{ item }}"
+        masked: yes
+        enabled: no
+        state: stopped
+      loop:
+        - sleep.target
+        - suspend.target
+        - hibernate.target
+        - hybrid-sleep.target
+
+    - name: Disable sleep triggers in logind.conf
+      lineinfile:
+        path: /etc/systemd/logind.conf
+        regexp: '^#?(HandleSuspendKey|HandleLidSwitch|HandleHibernateKey)='
+        line: '\1=ignore'
+        backrefs: yes
+      notify: Restart systemd-logind
+
+  handlers:
+    - name: Restart systemd-logind
+      service:
+        name: systemd-logind
+        state: restarted

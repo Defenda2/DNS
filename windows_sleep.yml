@@ -1,0 +1,14 @@
+---
+- name: Disable sleep on Windows systems
+  hosts: windows
+  gather_facts: yes
+
+  tasks:
+    - name: Disable sleep and monitor timeouts
+      win_shell: |
+        powercfg -change -standby-timeout-ac 0
+        powercfg -change -standby-timeout-dc 0
+        powercfg -change -hibernate-timeout-ac 0
+        powercfg -change -hibernate-timeout-dc 0
+        powercfg -change -monitor-timeout-ac 0
+        powercfg -change -monitor-timeout-dc 0
